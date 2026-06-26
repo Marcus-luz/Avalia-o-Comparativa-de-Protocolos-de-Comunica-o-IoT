@@ -1,4 +1,4 @@
-Protocolo,Latencia_Media_ms
-MQTT,500.73838233947754
-HTTP,1200.4077434539795
-CoAP,300.39167404174805
+Protocolo,CPU (%),Memória (MB),Latência (ms),Sucesso (%)
+MQTT,7.45,34.89,98.3,99.8
+HTTP,11.94,65.12,243.5,99.5
+CoAP,99.5,38.43,87.9,98.7
