@@ -1,32 +1,41 @@
-import csv
 import os
+import subprocess
+import sys
 
-# Configurações de saída
 OUTPUT_DIR = "docs"
 RESULTADOS_FILE = os.path.join(OUTPUT_DIR, "resultados.csv")
 
-# Garante que a pasta 'docs' existe
-if not os.path.exists(OUTPUT_DIR):
-    os.makedirs(OUTPUT_DIR)
-
 def executar_benchmark():
-    print("Iniciando Benchmark dos Protocolos...")
-
-    # Dados consolidados conforme o seu relatório final (trabalho final.pdf)
-    # A ordem das colunas aqui é crucial para o seu dashboard funcionar
-    dados = [
-        ["Protocolo", "CPU (%)", "Memória (MB)", "Latência (ms)", "Sucesso (%)"],
-        ["MQTT", 7.45, 34.89, 98.3, 99.8],
-        ["HTTP", 11.94, 65.12, 243.5, 99.5],
-        ["CoAP", 99.50, 38.43, 87.9, 98.7]
+    print("=== Iniciando Benchmark Real dos Protocolos ===")
+    
+    if not os.path.exists(OUTPUT_DIR):
+        os.makedirs(OUTPUT_DIR)
+        
+    # 1. Preparar o ficheiro CSV limpando dados antigos e adicionando o cabeçalho
+    with open(RESULTADOS_FILE, "w", encoding="utf-8") as f:
+        f.write("Protocolo,CPU (%),Memória (MB),Latência (ms),Sucesso (%)\n")
+        
+    # 2. Configuração rápida para o teste (podes alterar depois)
+    repeticoes = 10
+    intervalo = 1
+    
+    protocolos = [
+        ("MQTT", "src/mqtt_client.py"),
+        ("HTTP", "src/http_client.py"),
+        ("CoAP", "src/coap_client.py")
     ]
-
-    # Salvar em CSV dentro da pasta docs
-    with open(RESULTADOS_FILE, "w", newline="", encoding="utf-8") as f:
-        writer = csv.writer(f)
-        writer.writerows(dados)
-
-    print(f"\nTeste finalizado! Resultados consolidados salvos em {RESULTADOS_FILE}")
+    
+    # 3. Executar cada cliente. Eles mesmos vão gravar os resultados no CSV.
+    for nome, script in protocolos:
+        print(f"\n--- A testar {nome} ---")
+        # Usamos o subprocess para correr o script como se fosse no terminal
+        subprocess.run([
+            sys.executable, script, 
+            "--repeticoes", str(repeticoes), 
+            "--intervalo", str(intervalo)
+        ])
+        
+    print(f"\n=== Benchmark concluído! Resultados guardados em {RESULTADOS_FILE} ===")
 
 if __name__ == "__main__":
     executar_benchmark()
