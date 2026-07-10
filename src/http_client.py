@@ -3,6 +3,8 @@ import requests
 import argparse
 import psutil
 import os
+import sys
+import json
 
 def main():
     parser = argparse.ArgumentParser(description="Cliente HTTP IoT")
@@ -18,17 +20,19 @@ def main():
     sucessos = 0
     PAYLOAD = {"coordenadas": "-29.7, -55.8"}
 
-    print(f"HTTP: Enviando {args.repeticoes} mensagens...")
+    print(f"HTTP: Enviando {args.repeticoes} mensagens...", file=sys.stderr)
     for i in range(args.repeticoes):
-        inicio = time.time()
+        inicio = time.perf_counter()
         try:
             resposta = requests.post(args.url, json=PAYLOAD, timeout=5)
-            fim = time.time()
+            fim = time.perf_counter()
             if resposta.status_code == 200:
                 sucessos += 1
                 latencias.append((fim - inicio) * 1000)
-        except Exception:
-            pass # Em caso de erro, a latência não é contabilizada e o sucesso falha
+            else:
+                print(f"Aviso HTTP: Status Code {resposta.status_code}", file=sys.stderr)
+        except Exception as e:
+            print(f"Erro HTTP na requisição {i+1}: {e}", file=sys.stderr)
         
         time.sleep(args.intervalo)
 
@@ -37,10 +41,15 @@ def main():
     latencia_media = sum(latencias) / len(latencias) if latencias else 0
     taxa_sucesso = (sucessos / args.repeticoes) * 100
 
-    with open("docs/resultados.csv", "a", encoding="utf-8") as f:
-        f.write(f"HTTP,{cpu_media:.2f},{memoria_mb:.2f},{latencia_media:.2f},{taxa_sucesso:.1f}\n")
-
-    print(f"HTTP Finalizado -> Latência: {latencia_media:.2f}ms | Sucesso: {taxa_sucesso}% | CPU: {cpu_media}% | RAM: {memoria_mb:.2f}MB")
+    resultado = {
+        "protocolo": "HTTP",
+        "cpu": round(cpu_media, 2),
+        "memoria": round(memoria_mb, 2),
+        "latencia": round(latencia_media, 2),
+        "sucesso": round(taxa_sucesso, 1)
+    }
+    
+    print(json.dumps(resultado))
 
 if __name__ == "__main__":
     main()

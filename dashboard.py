@@ -2,7 +2,6 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import os
 
-# Caminho do arquivo
 caminho_csv = os.path.join("docs", "resultados.csv")
 
 if not os.path.exists(caminho_csv):
@@ -10,21 +9,20 @@ if not os.path.exists(caminho_csv):
 else:
     df = pd.read_csv(caminho_csv)
     
-    # Criar uma figura com 4 sub-gráficos (2x2)
-    fig, axes = plt.subplots(2, 2, figsize=(12, 10))
-    fig.suptitle('Comparativo de Performance Real: Protocolos IoT', fontsize=16)
+    # Estilo moderno do matplotlib
+    plt.style.use('ggplot')
     
-    # Cores para cada protocolo
-    cores = ['#3498db', '#e74c3c', '#2ecc71'] 
+    fig, axes = plt.subplots(2, 2, figsize=(14, 10))
+    fig.suptitle('Comparativo de Performance Real: Protocolos IoT', fontsize=18, fontweight='bold', y=0.98)
+    
+    cores = ['#3498db', '#e74c3c', '#2ecc71']
 
-    # Função auxiliar para colocar os valores em cima das barras
     def adicionar_valores(ax):
         for p in ax.patches:
             ax.annotate(f"{p.get_height():.2f}", 
                         (p.get_x() + p.get_width() / 2., p.get_height()), 
-                        ha='center', va='center', 
-                        xytext=(0, 9), 
-                        textcoords='offset points')
+                        ha='center', va='bottom', 
+                        xytext=(0, 5), textcoords='offset points', fontsize=10)
 
     # 1. Gráfico de Latência
     axes[0, 0].bar(df["Protocolo"], df["Latência (ms)"], color=cores)
@@ -48,15 +46,13 @@ else:
     axes[1, 1].bar(df["Protocolo"], df["Sucesso (%)"], color=cores)
     axes[1, 1].set_title('Taxa de Sucesso (%)')
     axes[1, 1].set_ylabel('%')
-    axes[1, 1].set_ylim(max(0, df["Sucesso (%)"].min() - 5), 105) # Ajusta o zoom consoante os resultados
+    axes[1, 1].set_ylim(0, 110) # Fixo para não cortar os textos do topo
     adicionar_valores(axes[1, 1])
 
-    plt.tight_layout(rect=[0, 0.03, 1, 0.95]) # Ajustar layout
+    plt.tight_layout(rect=[0, 0.03, 1, 0.95])
     
-    # Guarda o gráfico automaticamente na pasta docs
     caminho_imagem = os.path.join("docs", "grafico_benchmark.png")
-    plt.savefig(caminho_imagem)
+    # dpi=300 garante uma imagem em alta resolução para usar no README.md
+    plt.savefig(caminho_imagem, dpi=300)
     print(f"Gráfico guardado com sucesso em: {caminho_imagem}")
-    
-    # Mostra o gráfico no ecrã
     plt.show()

@@ -3,6 +3,8 @@ import argparse
 import paho.mqtt.client as mqtt
 import psutil
 import os
+import sys
+import json
 
 def main():
     parser = argparse.ArgumentParser(description="Cliente MQTT IoT")
@@ -12,43 +14,50 @@ def main():
     parser.add_argument("--intervalo", type=int, default=10)
     args = parser.parse_args()
 
-    # Inicializar a monitorização do sistema
     processo = psutil.Process(os.getpid())
-    processo.cpu_percent() # Primeira chamada para calibrar o psutil
+    processo.cpu_percent()
 
     client = mqtt.Client(callback_api_version=mqtt.CallbackAPIVersion.VERSION2)
-    client.connect(args.broker, args.porta, 60)
+    try:
+        client.connect(args.broker, args.porta, 60)
+    except Exception as e:
+        print(f"Erro ao conectar ao broker MQTT: {e}", file=sys.stderr)
+        sys.exit(1)
     
     latencias = []
     sucessos = 0
 
-    print(f"MQTT: Enviando {args.repeticoes} mensagens...")
+    print(f"MQTT: Enviando {args.repeticoes} mensagens...", file=sys.stderr)
     try:
         for i in range(args.repeticoes):
-            inicio = time.time()
+            inicio = time.perf_counter()
             resultado = client.publish("entregas/rastreio/1", "Lat:-29.7, Long:-55.8")
-            resultado.wait_for_publish() # Esperar que a mensagem seja efetivamente enviada
-            fim = time.time()
+            resultado.wait_for_publish()
+            fim = time.perf_counter()
             
-            latencias.append((fim - inicio) * 1000) # Converter para milissegundos
+            latencias.append((fim - inicio) * 1000)
             sucessos += 1
             time.sleep(args.intervalo)
     except Exception as e:
-        print(f"Erro MQTT: {e}")
+        print(f"Erro MQTT durante envio na requisição {i+1}: {e}", file=sys.stderr)
     finally:
         client.disconnect()
 
-    # Calcular médias finais
     cpu_media = processo.cpu_percent()
     memoria_mb = processo.memory_info().rss / (1024 * 1024)
     latencia_media = sum(latencias) / len(latencias) if latencias else 0
     taxa_sucesso = (sucessos / args.repeticoes) * 100
 
-    # Gravar no CSV
-    with open("docs/resultados.csv", "a", encoding="utf-8") as f:
-        f.write(f"MQTT,{cpu_media:.2f},{memoria_mb:.2f},{latencia_media:.2f},{taxa_sucesso:.1f}\n")
+    resultado = {
+        "protocolo": "MQTT",
+        "cpu": round(cpu_media, 2),
+        "memoria": round(memoria_mb, 2),
+        "latencia": round(latencia_media, 2),
+        "sucesso": round(taxa_sucesso, 1)
+    }
     
-    print(f"MQTT Finalizado -> Latência: {latencia_media:.2f}ms | Sucesso: {taxa_sucesso}% | CPU: {cpu_media}% | RAM: {memoria_mb:.2f}MB")
+    # Imprime apenas o JSON no stdout
+    print(json.dumps(resultado))
 
 if __name__ == "__main__":
     main()
